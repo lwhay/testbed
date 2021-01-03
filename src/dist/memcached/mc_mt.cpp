@@ -39,13 +39,13 @@ void send_thread(int tid);
 
 int main(int argc, char **argv) {
     char *path;
-    if (argc == 3) {
+    if (argc < 3) {
+        printf("please input filename\n");
+        return 0;
+    } else {
         THREAD_NUM = std::atol(argv[1]);
         runtimelist = (unsigned long *) malloc(THREAD_NUM * sizeof(unsigned long));
         path = argv[2];
-    } else if (argc < 3) {
-        printf("please input filename\n");
-        return 0;
     }
     if (argc == 4) target_ip = argv[3];
 
