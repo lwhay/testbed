@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "tracer.h"
 
@@ -17,6 +18,8 @@ typedef struct SendBatch {
     char *buf;
     std::size_t size;//real data size
 } sendbatch;
+
+char *target_ip = "172.168.204.75";
 
 int THREAD_NUM = 4;
 
@@ -32,7 +35,6 @@ void con_package(char *buf, YCSB_request *req);
 
 int get_package_size(YCSB_request *req);
 
-
 void send_thread(int tid);
 
 int main(int argc, char **argv) {
@@ -41,10 +43,11 @@ int main(int argc, char **argv) {
         THREAD_NUM = std::atol(argv[1]);
         runtimelist = (unsigned long *) malloc(THREAD_NUM * sizeof(unsigned long));
         path = argv[2];
-    } else {
+    } else if (argc < 3) {
         printf("please input filename\n");
         return 0;
     }
+    if (argc == 4) target_ip = argv[3];
 
     int key_range = 200;
     YCSBLoader loader(path);
@@ -90,7 +93,7 @@ void send_thread(int tid) {
 
     srv_addr.sin_family = AF_INET;
     srv_addr.sin_port = htons(11211);
-    srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    srv_addr.sin_addr.s_addr = inet_addr(target_ip);//htonl(INADDR_ANY);
 
     //connect server;
     if (connect(connect_fd, (struct sockaddr *) &srv_addr, sizeof(srv_addr)) == -1) {
