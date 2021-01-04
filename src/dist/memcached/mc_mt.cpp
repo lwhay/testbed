@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
         runtimelist = (unsigned long *) malloc(THREAD_NUM * sizeof(unsigned long));
         path = argv[2];
     }
-    if (argc == 4) target_ip = argv[3];
+    if (argc >= 4) target_ip = argv[3];
     if (argc == 5) TOTAL_ROUND = std::atoi(argv[4]);
 
     int key_range = 200;
