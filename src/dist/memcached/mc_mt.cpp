@@ -23,6 +23,8 @@ char *target_ip = "172.168.204.75";
 
 int THREAD_NUM = 4;
 
+int TOTAL_ROUND = 10;
+
 unsigned long *runtimelist;
 
 std::vector<YCSB_request *> loads;
@@ -48,6 +50,7 @@ int main(int argc, char **argv) {
         path = argv[2];
     }
     if (argc == 4) target_ip = argv[3];
+    if (argc == 5) TOTAL_ROUND = std::atoi(argv[4]);
 
     int key_range = 200;
     YCSBLoader loader(path);
@@ -108,16 +111,18 @@ void send_thread(int tid) {
     tracer.startTime();
     unsigned long writenbytes = 0, readnbytes = 0;
     char ret[BATCH_SIZE];
-    for (int i = 0; i < send_num; i++) {
-        int sentsize = write(connect_fd, database[start_index + i].buf, database[start_index + i].size);
-        writenbytes += sentsize;
-        if (sentsize == database[start_index + i].size) {
-            int retsize = read(connect_fd, ret, BATCH_SIZE);
-            ret[retsize] = 0;
-            // printf("%s\n", ret);
-            readnbytes += retsize;
+    for (int j = 0; j < TOTAL_ROUND; j++) {
+        for (int i = 0; i < send_num; i++) {
+            int sentsize = write(connect_fd, database[start_index + i].buf, database[start_index + i].size);
+            writenbytes += sentsize;
+            if (sentsize == database[start_index + i].size) {
+                int retsize = read(connect_fd, ret, BATCH_SIZE);
+                ret[retsize] = 0;
+                // printf("%s\n", ret);
+                readnbytes += retsize;
+            }
+            //writenbytes+=write(connect_fd,tmpbuf,strlen(tmpbuf));
         }
-        //writenbytes+=write(connect_fd,tmpbuf,strlen(tmpbuf));
     }
     runtimelist[tid] += tracer.getRunTime();
     printf("thread %d write bytes:%ld, read bytes:%ld\n", tid, writenbytes, readnbytes);
