@@ -106,14 +106,21 @@ void send_thread(int tid) {
 
     Tracer tracer;
     tracer.startTime();
-    unsigned long writenbytes = 0;
+    unsigned long writenbytes = 0, readnbytes = 0;
+    char ret[BATCH_SIZE];
     for (int i = 0; i < send_num; i++) {
-        writenbytes += write(connect_fd, database[start_index + i].buf, \
-                            database[start_index + i].size);
+        int sentsize = write(connect_fd, database[start_index + i].buf, database[start_index + i].size);
+        writenbytes += sentsize;
+        if (sentsize == database[start_index + i].size) {
+            int retsize = read(connect_fd, ret, BATCH_SIZE);
+            ret[retsize] = 0;
+            // printf("%s\n", ret);
+            readnbytes += retsize;
+        }
         //writenbytes+=write(connect_fd,tmpbuf,strlen(tmpbuf));
     }
     runtimelist[tid] += tracer.getRunTime();
-    printf("thread %d write bytes:%ld\n", tid, writenbytes);
+    printf("thread %d write bytes:%ld, read bytes:%ld\n", tid, writenbytes, readnbytes);
     close(connect_fd);
 }
 
@@ -143,7 +150,6 @@ void con_database(int begin_index, int end_index) {
     }
     batch.size = offset;
     database.push_back(batch);
-
 }
 
 int get_package_size(YCSB_request *req) {
@@ -160,7 +166,7 @@ void con_package(char *buf, YCSB_request *req) {
     if (req->getOp() == lookup) {
         //GETQ
         buf[0] = 0x80;
-        buf[1] = 0x09;
+        buf[1] = 0x00;
         size_t ks = req->keyLength();
         *(unsigned short int *) (buf + 2) = htons((unsigned short int) ks);
         *(unsigned int *) (buf + 8) = htonl((unsigned int) ks);
@@ -168,7 +174,7 @@ void con_package(char *buf, YCSB_request *req) {
     } else if (req->getOp() == insert || req->getOp() == update) {
         //SET
         buf[0] = 0x80;
-        buf[1] = 0x11;
+        buf[1] = 0x01;
         size_t ks = req->keyLength();
         size_t vs = req->valLength();
         *(unsigned short int *) (buf + 2) = htons((unsigned short int) ks);
