@@ -15,3 +15,7 @@ include_directories("./src/dist/memcached")
 add_executable(mc_mt ./src/dist/memcached/mc_mt.cpp)
 
 target_link_libraries(mc_mt pthread)
+
+add_executable(mc_mtr ./src/dist/memcached/mc_mtr.cpp)
+
+target_link_libraries(mc_mtr pthread memcached)
