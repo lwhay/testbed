@@ -19,3 +19,7 @@ target_link_libraries(mc_mt pthread)
 add_executable(mc_mtr ./src/dist/memcached/mc_mtr.cpp)
 
 target_link_libraries(mc_mtr pthread memcached)
+
+add_executable(mc_mt_ycsb ./src/dist/memcached/mc_mt_ycsb.cpp)
+
+target_link_libraries(mc_mt_ycsb pthread memcached)
