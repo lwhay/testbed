@@ -13,15 +13,18 @@
 #include <libmemcached/memcached.h>
 #include "tracer.h"
 
+#include <cstring>
+
 #define DEFAULT_THREAD_NUM (8)
 #define DEFAULT_KEYS_COUNT (1 << 20)
 #define DEFAULT_KEYS_RANGE (1 << 20)
 
 #define ENABLE_INITIALIZATION 0
 
+#define DEFAULT_KEY_LENGTH (1 << 6)
 using namespace ycsb;
 
-char *host_ip = "127.0.0.1"; //"172.168.204.75";
+char *host_ip = "172.168.204.75";
 
 memcached_server_st *store;
 
@@ -104,7 +107,6 @@ void *measureWorker(void *args) {
     uint64_t mhit = 0, rhit = 0;
     uint64_t mfail = 0, rfail = 0;
     std::string dummyVal;
-    std::cout << work->tid << std::endl;
 
     try {
         while (stopMeasure.load(memory_order_relaxed) == 0) {
@@ -123,8 +125,14 @@ void *measureWorker(void *args) {
                     }
                     case 1:
                     case 3: {
-                        memcached_return_t ret = memcached_set(memc[work->tid], runs[i]->getKey(), runs[i]->keyLength(),
-                                                               runs[i]->getVal(), runs[i]->valLength(), 0, 0);
+                        char key[DEFAULT_KEY_LENGTH];
+                        char value[DEFAULT_KEY_LENGTH];
+                        std::memset(key, 0, DEFAULT_KEY_LENGTH);
+                        std::memset(value, 0, DEFAULT_KEY_LENGTH);
+                        std::sprintf(key, "%s", runs[i]->getKey());
+                        std::sprintf(value, "%s", runs[i]->getVal());
+                        memcached_return_t ret = memcached_set(memc[work->tid], key, std::strlen(key),
+                                                               value, std::strlen(value), 0, 0);
                         if (ret == memcached_return_t::MEMCACHED_SUCCESS) mhit++;
                         else mfail++;
                         break;
