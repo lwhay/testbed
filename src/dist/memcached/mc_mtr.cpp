@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
         memc[i] = memcached_create(NULL);
         memcached_server_push(memc[i], servers);
         memcached_behavior_set(memc[i], MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, i);
+        runtimes[i] = 0;
         modification_success.store(0);
         modification_failure.store(0);
         tids[i] = i;
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
          << " " << ((double) modification_success + modification_failure) * thread_number / total_runtime << endl;
 
     for (int i = 0; i < thread_number; i++) {
+        runtimes[i] = 0;
         modification_success.store(0);
         modification_failure.store(0);
         tids[i] = i;
