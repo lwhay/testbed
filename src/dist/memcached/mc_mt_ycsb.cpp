@@ -24,7 +24,7 @@
 #define DEFAULT_KEY_LENGTH (1 << 6)
 using namespace ycsb;
 
-char *host_ip = "172.168.204.75";
+char *host_ip = "127.0.0.1";
 
 memcached_server_st *store;
 
@@ -125,14 +125,8 @@ void *measureWorker(void *args) {
                     }
                     case 1:
                     case 3: {
-                        char key[DEFAULT_KEY_LENGTH];
-                        char value[DEFAULT_KEY_LENGTH];
-                        std::memset(key, 0, DEFAULT_KEY_LENGTH);
-                        std::memset(value, 0, DEFAULT_KEY_LENGTH);
-                        std::sprintf(key, "%s", runs[i]->getKey());
-                        std::sprintf(value, "%s", runs[i]->getVal());
-                        memcached_return_t ret = memcached_set(memc[work->tid], key, std::strlen(key),
-                                                               value, std::strlen(value), 0, 0);
+                        memcached_return_t ret = memcached_set(memc[work->tid], runs[i]->getKey(), runs[i]->keyLength(),
+                                                               runs[i]->getVal(), runs[i]->valLength(), 0, 0);
                         if (ret == memcached_return_t::MEMCACHED_SUCCESS) mhit++;
                         else mfail++;
                         break;
@@ -190,7 +184,7 @@ void multiWorkers() {
     for (int i = 0; i < thread_number; i++) {
         memc[i] = memcached_create(NULL);
         memcached_server_push(memc[i], store);
-        memcached_behavior_set(memc[i], MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, i);
+        memcached_behavior_set(memc[i], MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
         pthread_create(&workers[i], nullptr, measureWorker, &parms[i]);
     }
     while (timer.elapsedSeconds() < timer_range) {
@@ -217,7 +211,11 @@ int main(int argc, char **argv) {
         erasePercentage = std::atoi(argv[7]);
         readPercentage = totalPercentage - updatePercentage - erasePercentage;
     }
-    store = memcached_servers_parse(host_ip);
+    if (argc > 8) host_ip = argv[8];
+    char host[DEFAULT_KEY_LENGTH];
+    std::memset(host, 0, DEFAULT_KEY_LENGTH);
+    std::strcpy(host, host_ip);
+    store = memcached_servers_parse(std::strcat(host, ":11211"));
     memc = new memcached_st *[thread_number];
 #if ENABLE_INITIALIZATION
     YCSBLoader loader(loadpath, key_range);
