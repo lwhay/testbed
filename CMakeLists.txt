@@ -27,3 +27,5 @@ target_link_libraries(mc_mt_ycsb pthread memcached)
 add_executable(huhu_test ./src/dist/memcached/test.cpp)
 
 add_subdirectory(src/dist/mica2)
+
+add_subdirectory(src/dist/anna)
