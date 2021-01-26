@@ -26,6 +26,32 @@ target_link_libraries(mc_mt_ycsb pthread memcached)
 
 add_executable(huhu_test ./src/dist/memcached/test.cpp)
 
-add_subdirectory(src/dist/mica2)
+set(NUMA_DEP -lnuma)
 
-add_subdirectory(src/dist/anna)
+set(COM_LIBS
+        )
+
+set(COM_EXES
+        ./src/com/socket_server.cpp
+        ./src/com/socket_client.cpp)
+
+set(COM_TESTS ${COM_EXES})
+foreach (sourcefile ${COM_TESTS})
+    get_filename_component(exename ${sourcefile} NAME_WE)
+    add_executable(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} ${sourcefile} ${COM_LIBS})
+    set_target_properties(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX}
+            PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD_RELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_MINRELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
+            OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
+            )
+    if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} -L../libs -lpthread -levent -ljemalloc-osx)
+    else ()
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} -L./libs ${NUMA_DEP} -lpthread -levent -ljemalloc)
+    endif ()
+endforeach (sourcefile ${COM_TESTS})
+
+#add_subdirectory(src/dist/mica2)
+
+#add_subdirectory(src/dist/anna)
