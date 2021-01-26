@@ -11,6 +11,8 @@ int batch_size = 4;
 
 int total_round = (1llu << 20);
 
+int sender_num = 4;
+
 int port_num;
 
 #define  NUM_THREADS 4

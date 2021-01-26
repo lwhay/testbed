@@ -71,15 +71,17 @@ void *thread_func(void *threadid) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 4) {
+    sender_num = NUM_THREADS;
+    if (argc == 5) {
         ip_addr = argv[1];
         batch_size = std::atoi(argv[2]);
         total_round = std::atoi(argv[3]);
+        sender_num = std::atoi(argv[4]);
     }
-    pthread_t threads[NUM_THREADS];
+    pthread_t threads[sender_num];
     int rc;
     int i;
-    for (i = 0; i < NUM_THREADS; i++) {
+    for (i = 0; i < sender_num; i++) {
         printf("main() : creating thread %d\n ", i);
         rc = pthread_create(&threads[i], NULL, thread_func, (void *) i);
         if (rc) {
