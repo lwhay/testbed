@@ -109,7 +109,7 @@ void send_thread(int tid) {
 
     Tracer tracer;
     tracer.startTime();
-    unsigned long writenbytes = 0, readnbytes = 0;
+    unsigned long writenbytes = 0, readnbytes = 0, count = 0;
     char ret[BATCH_SIZE];
     for (int j = 0; j < TOTAL_ROUND; j++) {
         for (int i = 0; i < send_num; i++) {
@@ -120,12 +120,13 @@ void send_thread(int tid) {
                 ret[retsize] = 0;
                 // printf("%s\n", ret);
                 readnbytes += retsize;
+                count++;
             }
             //writenbytes+=write(connect_fd,tmpbuf,strlen(tmpbuf));
         }
     }
     runtimelist[tid] += tracer.getRunTime();
-    printf("thread %d write bytes:%ld, read bytes:%ld\n", tid, writenbytes, readnbytes);
+    printf("thread %d write bytes:%ld, read bytes:%ld, count:%ld\n", tid, writenbytes, readnbytes, count);
     close(connect_fd);
 }
 

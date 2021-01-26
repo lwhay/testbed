@@ -52,6 +52,8 @@ foreach (sourcefile ${COM_TESTS})
     endif ()
 endforeach (sourcefile ${COM_TESTS})
 
-#add_subdirectory(src/dist/mica2)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_subdirectory(src/dist/mica2)
+endif ()
 
-#add_subdirectory(src/dist/anna)
+add_subdirectory(src/dist/anna)
