@@ -14,7 +14,7 @@
 #include <pthread.h>
 //#include "client_tool.h"
 #include "settings.h"
-//#include "tracer.h"
+#include "tracer.h"
 
 struct timeval starttime;
 unsigned long runtime;
@@ -27,6 +27,7 @@ unsigned long getRunTime(struct timeval begTime) {
 }
 
 void send_data(int threadid, socklen_t fd) {
+    Tracer tracer;
     char send_buf[4096];
     char read_buf[4096];
     memset(send_buf, 0, sizeof(send_buf));
@@ -34,6 +35,7 @@ void send_data(int threadid, socklen_t fd) {
         *((int *) &send_buf[i * sizeof(int)]) = i;
     }
     uint64_t total_sent = 0, total_count = 0, total_read = 0;
+    tracer.startTime();
     for (int i = 0; i < total_round; i++) {
         *((int *) send_buf) = i;
         total_sent += write(fd, send_buf, batch_size);
@@ -42,7 +44,8 @@ void send_data(int threadid, socklen_t fd) {
             total_read += read(fd, read_buf, using_dummy);
         }
     }
-    printf("thread %d send %lld, %lld, %lld\n", threadid, total_count, total_sent, total_read);
+    printf("thread %d \tsend %lld, \t%lld, \t%lld, \t%lld\n", threadid, total_count, total_sent, total_read,
+           tracer.getRunTime());
 }
 
 void *thread_func(void *threadid) {
