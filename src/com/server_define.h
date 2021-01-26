@@ -99,6 +99,7 @@ struct CONNECTION {
     std::vector<batchbuf> batch_ret_vector;
 
     unsigned long bytes_processed_in_this_connection;
+    unsigned long count_processed_in_this_connection;
 
 
     struct event event;

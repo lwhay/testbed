@@ -28,17 +28,21 @@ unsigned long getRunTime(struct timeval begTime) {
 
 void send_data(int threadid, socklen_t fd) {
     char send_buf[4096];
+    char read_buf[4096];
     memset(send_buf, 0, sizeof(send_buf));
     for (int i = 0; i < batch_size / sizeof(int); i++) {
         *((int *) &send_buf[i * sizeof(int)]) = i;
     }
-    uint64_t total_sent = 0, total_count = 0;
+    uint64_t total_sent = 0, total_count = 0, total_read = 0;
     for (int i = 0; i < total_round; i++) {
         *((int *) send_buf) = i;
         total_sent += write(fd, send_buf, batch_size);
         total_count++;
+        if (using_dummy > 0) {
+            total_read += read(fd, read_buf, using_dummy);
+        }
     }
-    printf("thread %d send %lld, %lld\n", threadid, total_count, total_sent);
+    printf("thread %d send %lld, %lld, %lld\n", threadid, total_count, total_sent, total_read);
 }
 
 void *thread_func(void *threadid) {
@@ -72,12 +76,15 @@ void *thread_func(void *threadid) {
 
 int main(int argc, char **argv) {
     sender_num = NUM_THREADS;
-    if (argc == 5) {
+    if (argc == 6) {
         ip_addr = argv[1];
         batch_size = std::atoi(argv[2]);
         total_round = std::atoi(argv[3]);
         sender_num = std::atoi(argv[4]);
+        using_dummy = std::atoi(argv[5]);
     }
+    printf("Address: %s, bs: %d, round: %d, sender: %d, dummy: %d\n", ip_addr, batch_size, total_round, sender_num,
+           using_dummy);
     pthread_t threads[sender_num];
     int rc;
     int i;

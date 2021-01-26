@@ -15,6 +15,10 @@ int sender_num = 4;
 
 int port_num;
 
+int using_dummy = 0;
+
+#define DUMMY_LENGTH 4
+
 #define  NUM_THREADS 4
 
 int server_port_base = 8033;

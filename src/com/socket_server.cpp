@@ -350,6 +350,13 @@ void process_func(CONNECTION *c) {
                         conn_state_jump(c->conn_state, conn_waiting);
                         break;
                     case READ_DATA_RECEIVED:
+                        c->count_processed_in_this_connection++;
+                        c->bytes_processed_in_this_connection += c->recv_bytes;
+                        if (using_dummy > 0) {
+                            char dummy[using_dummy];
+                            write(c->sfd, dummy, using_dummy);
+                            // printf("%d, %d, %d\n", c->count_processed_in_this_connection, c->recv_bytes);
+                        }
                         conn_state_jump(c->conn_state, conn_waiting/*conn_deal_with*/);
                         break;
                     case READ_ERROR:
@@ -479,8 +486,9 @@ void process_func(CONNECTION *c) {
             }
 
             case conn_closing : {
-                printf("[%d:%d] conn_closing ,processed bytes: %lu \n", \
-                        c->thread_index, c->sfd, c->bytes_processed_in_this_connection);
+                printf("[%d:%d] conn_closing ,processed bytes: %lu via: %lu \n", \
+                        c->thread_index, c->sfd, c->bytes_processed_in_this_connection,
+                       c->count_processed_in_this_connection);
                 conn_close(c);
                 stop = true;
                 break;
@@ -533,6 +541,7 @@ void conn_new(int sfd, struct event_base *base, int thread_index) {
     c->recv_bytes = 0;
     c->remaining_bytes = 0;
     c->bytes_processed_in_this_connection = 0;
+    c->count_processed_in_this_connection = 0;
 
     c->query_hit = false;
     c->ret_buf_offset = 0;
@@ -710,12 +719,13 @@ void conn_dispatch(evutil_socket_t listener, short event, void *args) {
 
 
 int main(int argc, char **argv) {
-    if (argc == 3) {
+    if (argc == 4) {
         ip_addr = argv[1];
         port_num = atol(argv[2]);
+        using_dummy = atoi(argv[3]);
         // batch_num = atol(argv[3]); //not used
     } else {
-        printf("./multiport_network  <port_num> \n");
+        printf("./multiport_network <addr> <port_num> <dummy> \n");
         return 0;
     }
 
