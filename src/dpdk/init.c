@@ -225,7 +225,7 @@ int init(int argc, char *argv[]) {
     argc -= retval;
     argv += retval;
 
-    uint8_t i, total_ports = 0;
+    uint8_t i, total_ports = 255;
     /* get total number of ports */
 #if DPDK_VERSION != 20
     total_ports = rte_eth_dev_count();

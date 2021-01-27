@@ -59,7 +59,7 @@ set(DPDK_LIBS
 
 set(DPDK_EXES
         src/dpdk/dpdk_server.c
-        ./src/dpdk/dpck_client.cpp)
+        src/dpdk/dpdk_client.cpp)
 
 add_compile_options("-march=native")
 add_definitions(-DALLOW_EXPERIMENTAL_API)
@@ -100,7 +100,7 @@ foreach (sourcefile ${DPDK_TESTS})
 endforeach (sourcefile ${DPDK_TESTS})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_subdirectory(src/dist/mica2)
+#    add_subdirectory(src/dist/mica2)
 endif ()
 
-add_subdirectory(src/dist/anna)
+#add_subdirectory(src/dist/anna)
