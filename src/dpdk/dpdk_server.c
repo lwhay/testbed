@@ -39,8 +39,8 @@
 #include <rte_string_fns.h>
 
 #include "common.h"
-#include "args.h"
 #include "init.h"
+#include "args.h"
 
 /*
  * When doing reads from the NIC or the client queues,
@@ -67,7 +67,11 @@ static const char *get_printable_mac_addr(uint8_t port) {
     if (unlikely(port >= RTE_MAX_ETHPORTS))
         return err_address;
     if (unlikely(addresses[port][0] == '\0')) {
+#if (DPDK_VERSION == 20)
+        struct rte_ether_addr mac;
+#else
         struct ether_addr mac;
+#endif
         rte_eth_macaddr_get(port, &mac);
         snprintf(addresses[port], sizeof(addresses[port]),
                  "%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -120,8 +124,8 @@ static void do_stats_display(void) {
                get_printable_mac_addr(ports->id[i]));
     printf("\n\n");
     for (i = 0; i < ports->num_ports; i++) {
-        printf("Port %u - rx: %9"PRIu64"\t"
-                                       "tx: %9"PRIu64"\n",
+        printf("Port %u - rx: %9" PRIu64"\t"
+               "tx: %9" PRIu64"\n",
                (unsigned) ports->id[i], ports->rx_stats.rx[i],
                port_tx[i]);
     }
@@ -132,7 +136,7 @@ static void do_stats_display(void) {
         const unsigned long long rx = clients[i].stats.rx;
         const unsigned long long rx_drop = clients[i].stats.rx_drop;
         printf("Client %2u - rx: %9llu, rx_drop: %9llu\n"
-               "            tx: %9"PRIu64", tx_drop: %9"PRIu64"\n",
+               "            tx: %9" PRIu64", tx_drop: %9" PRIu64"\n",
                i, rx, rx_drop, client_tx[i], client_tx_drop[i]);
     }
 
@@ -187,8 +191,13 @@ static void flush_rx_queue(uint16_t client) {
         return;
 
     cl = &clients[client];
+#if DPDK_VERSION == 20
     if (rte_ring_enqueue_bulk(cl->rx_q, (void **) cl_rx_buf[client].buffer,
-                              cl_rx_buf[client].count) != 0) {
+                              cl_rx_buf[client].count, NULL) != 0) {
+#else
+        if (rte_ring_enqueue_bulk(cl->rx_q, (void **) cl_rx_buf[client].buffer,
+                                  cl_rx_buf[client].count) != 0) {
+#endif
         for (j = 0; j < cl_rx_buf[client].count; j++)
             rte_pktmbuf_free(cl_rx_buf[client].buffer[j]);
         cl->stats.rx_drop += cl_rx_buf[client].count;
@@ -257,7 +266,7 @@ int main(int argc, char *argv[]) {
         return -1;
     RTE_LOG(INFO, APP, "Finished Process Init.\n");
 
-    cl_rx_buf = static_cast<client_rx_buf *>(calloc(num_clients, sizeof(cl_rx_buf[0])));
+    cl_rx_buf = calloc(num_clients, sizeof(cl_rx_buf[0]));
 
     /* clear statistics */
     clear_stats();

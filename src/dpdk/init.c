@@ -62,8 +62,7 @@ struct port_info *ports;
  * Initialise the mbuf pool for packet reception for the NIC, and any other
  * buffer pools needed by the app - currently none.
  */
-static int
-init_mbuf_pools(void) {
+static int init_mbuf_pools(void) {
     const unsigned num_mbufs = (num_clients * MBUFS_PER_CLIENT) \
  + (ports->num_ports * MBUFS_PER_PORT);
 
@@ -84,8 +83,7 @@ init_mbuf_pools(void) {
  * - set up each tx ring
  * - start the port and report its status to stdout
  */
-static int
-init_port(uint8_t port_num) {
+static int init_port(uint8_t port_num) {
     /* for port configuration all features are off by default */
     const struct rte_eth_conf port_conf = {
             .rxmode = {
@@ -137,14 +135,13 @@ init_port(uint8_t port_num) {
  * pointers, between the multi-process server and client processes.
  * Each client needs one RX queue.
  */
-static int
-init_shm_rings(void) {
+static int init_shm_rings(void) {
     unsigned i;
     unsigned socket_id;
     const char *q_name;
     const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
 
-    clients = static_cast<client *>(rte_malloc("client details", sizeof(*clients) * num_clients, 0));
+    clients = rte_malloc("client details", sizeof(*clients) * num_clients, 0);
     if (clients == NULL)
         rte_exit(EXIT_FAILURE, "Cannot allocate memory for client program details\n");
 
@@ -152,8 +149,7 @@ init_shm_rings(void) {
         /* Create an RX queue for each client */
         socket_id = rte_socket_id();
         q_name = get_rx_queue_name(i);
-        clients[i].rx_q = rte_ring_create(q_name,
-                                          ringsize, socket_id,
+        clients[i].rx_q = rte_ring_create(q_name, ringsize, socket_id,
                                           RING_F_SP_ENQ | RING_F_SC_DEQ); /* single prod, single cons */
         if (clients[i].rx_q == NULL)
             rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
@@ -162,8 +158,7 @@ init_shm_rings(void) {
 }
 
 /* Check the link status of all ports in up to 9s, and print them finally */
-static void
-check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
+static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
 #define CHECK_INTERVAL 100 /* 100ms */
 #define MAX_CHECK_TIME 90 /* 9s (90 * 100ms) in total */
     uint8_t portid, count, all_ports_up, print_flag = 0;
@@ -219,11 +214,9 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
  * Main init function for the multi-process server app,
  * calls subfunctions to do each stage of the initialisation.
  */
-int
-init(int argc, char *argv[]) {
+int init(int argc, char *argv[]) {
     int retval;
     const struct rte_memzone *mz;
-    uint8_t i, total_ports;
 
     /* init EAL, parsing EAL args */
     retval = rte_eal_init(argc, argv);
@@ -232,8 +225,11 @@ init(int argc, char *argv[]) {
     argc -= retval;
     argv += retval;
 
+    uint8_t i, total_ports = 0;
     /* get total number of ports */
+#if DPDK_VERSION != 20
     total_ports = rte_eth_dev_count();
+#endif
 
     /* set up array for port data */
     mz = rte_memzone_reserve(MZ_PORT_INFO, sizeof(*ports),
@@ -241,10 +237,10 @@ init(int argc, char *argv[]) {
     if (mz == NULL)
         rte_exit(EXIT_FAILURE, "Cannot reserve memory zone for port information\n");
     memset(mz->addr, 0, sizeof(*ports));
-    ports = static_cast<port_info *>(mz->addr);
+    ports = mz->addr;
 
     /* parse additional, application arguments */
-    retval = parse_app_args(total_ports, argc, argv);
+    retval = parse_app_args(argc, argv, total_ports);
     if (retval != 0)
         return -1;
 

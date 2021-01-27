@@ -207,7 +207,11 @@ int main(int argc, char *argv[]) {
     if (parse_app_args(argc, argv) < 0)
         rte_exit(EXIT_FAILURE, "Invalid command-line arguments\n");
 
-    if (rte_eth_dev_count() == 0)
+#if DPDK_VERSION == 20
+    if (rte_eth_dev_count_avail() == 0)
+#else
+        if (rte_eth_dev_count() == 0)
+#endif
         rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
     rx_ring = rte_ring_lookup(get_rx_queue_name(client_id));
@@ -230,7 +234,29 @@ int main(int argc, char *argv[]) {
 
     printf("\nClient process %d handling packets\n", client_id);
     printf("[Press Ctrl-C to quit ...]\n");
+#if DPDK_VERSION == 20
+    for (;;) {
+        uint16_t i, rx_pkts;
 
+        rx_pkts = rte_ring_dequeue_burst(rx_ring, pkts, PKT_READ_SIZE, NULL);
+
+        if (rx_pkts == 0 && need_flush) {
+            for (i = 0; i < ports->num_ports; i++) {
+                uint16_t port = ports->id[i];
+
+                sent = rte_eth_tx_buffer_flush(port, client_id, tx_buffer[port]);
+                tx_stats->tx[port] += sent;
+            }
+            need_flush = 0;
+            continue;
+        }
+
+        for (i = 0; i < rx_pkts; i++)
+            handle_packet((rte_mbuf *) pkts[i]);
+
+        need_flush = 1;
+    }
+#else
     for (;;) {
         uint16_t i, rx_pkts = PKT_READ_SIZE;
         uint8_t port;
@@ -258,4 +284,5 @@ int main(int argc, char *argv[]) {
 
         need_flush = 1;
     }
+#endif
 }
