@@ -28,8 +28,8 @@ unsigned long getRunTime(struct timeval begTime) {
 
 void send_data(int threadid, socklen_t fd) {
     Tracer tracer;
-    char send_buf[4096];
-    char read_buf[4096];
+    char send_buf[batch_size];
+    char read_buf[batch_size];
     memset(send_buf, 0, sizeof(send_buf));
     for (int i = 0; i < batch_size / sizeof(int); i++) {
         *((int *) &send_buf[i * sizeof(int)]) = i;

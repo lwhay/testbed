@@ -52,6 +52,31 @@ foreach (sourcefile ${COM_TESTS})
     endif ()
 endforeach (sourcefile ${COM_TESTS})
 
+set(DPDK_LIBS
+        ./src/dpdk/init.cpp)
+
+set(DPDK_EXES
+        #        ./src/dpdk/dpdk_server.cpp
+        #        ./src/dpdk/dpck_client.cpp
+        )
+
+set(DPDK_TESTS ${DPDK_EXES})
+foreach (sourcefile ${DPDK_TESTS})
+    get_filename_component(exename ${sourcefile} NAME_WE)
+    add_executable(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} ${sourcefile} ${DPDK_LIBS})
+    set_target_properties(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX}
+            PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD_RELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_MINRELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
+            OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
+            )
+    if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} -L../libs -lpthread -levent -ljemalloc-osx)
+    else ()
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} -L./libs ${NUMA_DEP} -lpthread -levent -ljemalloc)
+    endif ()
+endforeach (sourcefile ${DPDK_TESTS})
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_subdirectory(src/dist/mica2)
 endif ()
