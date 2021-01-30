@@ -33,6 +33,7 @@
 #include <cmdline_parse_string.h>
 #include <cmdline_socket.h>
 #include <cmdline.h>
+#include <rte_mempool_trace.h>
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
@@ -165,6 +166,81 @@ static int lcore_recv(__rte_unused void *arg) {
     return 0;
 }
 
+int rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
+                               void *pool_config) {
+    struct rte_mempool_ops *ops = NULL;
+    unsigned i;
+
+    /* too late, the mempool is already populated. */
+    if (mp->flags & MEMPOOL_F_POOL_CREATED)
+        return -EEXIST;
+
+    for (i = 0; i < rte_mempool_ops_table.num_ops; i++) {
+        if (!strcmp(name, rte_mempool_ops_table.ops[i].name)) {
+            ops = &rte_mempool_ops_table.ops[i];
+            break;
+        }
+    }
+
+    if (ops == NULL)
+        return -EINVAL;
+
+    mp->ops_index = i;
+    mp->pool_config = pool_config;
+    rte_mempool_trace_set_ops_byname(mp, name, pool_config);
+    return 0;
+}
+
+struct rte_mempool *rte_mempool_create(const char *name, unsigned n, unsigned elt_size,
+                                       unsigned cache_size, unsigned private_data_size,
+                                       rte_mempool_ctor_t *mp_init, void *mp_init_arg,
+                                       rte_mempool_obj_cb_t *obj_init, void *obj_init_arg,
+                                       int socket_id, unsigned flags) {
+    int ret;
+    struct rte_mempool *mp;
+
+    int count = rte_mempool_ops_table.num_ops;
+    mp = rte_mempool_create_empty(name, n, elt_size, cache_size, private_data_size, socket_id, flags);
+    if (mp == NULL)
+        return NULL;
+
+    /*
+     * Since we have 4 combinations of the SP/SC/MP/MC examine the flags to
+     * set the correct index into the table of ops structs.
+     */
+    if ((flags & MEMPOOL_F_SP_PUT) && (flags & MEMPOOL_F_SC_GET))
+        ret = rte_mempool_set_ops_byname(mp, "ring_sp_sc", NULL);
+    else if (flags & MEMPOOL_F_SP_PUT)
+        ret = rte_mempool_set_ops_byname(mp, "ring_sp_mc", NULL);
+    else if (flags & MEMPOOL_F_SC_GET)
+        ret = rte_mempool_set_ops_byname(mp, "ring_mp_sc", NULL);
+    else
+        ret = rte_mempool_set_ops_byname(mp, "ring_mp_mc", NULL);
+
+    if (ret)
+        goto fail;
+
+    /* call the mempool priv initializer */
+    if (mp_init)
+        mp_init(mp, mp_init_arg);
+
+    if (rte_mempool_populate_default(mp) < 0)
+        goto fail;
+
+    /* call the object initializers */
+    if (obj_init)
+        rte_mempool_obj_iter(mp, obj_init, obj_init_arg);
+
+    rte_mempool_trace_create(name, n, elt_size, cache_size,
+                             private_data_size, mp_init, mp_init_arg, obj_init,
+                             obj_init_arg, flags, mp);
+    return mp;
+
+    fail:
+    rte_mempool_free(mp);
+    return NULL;
+}
+
 int main(int argc, char **argv) {
     const unsigned flags = 0;
     const unsigned ring_size = 64;
@@ -182,11 +258,8 @@ int main(int argc, char **argv) {
     if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
         send_ring = rte_ring_create(_PRI_2_SEC, ring_size, rte_socket_id(), flags);
         recv_ring = rte_ring_create(_SEC_2_PRI, ring_size, rte_socket_id(), flags);
-        uint32_t id = rte_socket_id();
-        message_pool = rte_mempool_create(_MSG_POOL, pool_size,
-                                          STR_TOKEN_SIZE, pool_cache, priv_data_sz,
-                                          NULL, NULL, NULL, NULL,
-                                          rte_socket_id(), flags);
+        message_pool = rte_mempool_create(_MSG_POOL, pool_size, STR_TOKEN_SIZE, pool_cache, priv_data_sz, NULL, NULL,
+                                          NULL, NULL, rte_socket_id(), flags);
     } else {
         recv_ring = rte_ring_lookup(_PRI_2_SEC);
         send_ring = rte_ring_lookup(_SEC_2_PRI);
