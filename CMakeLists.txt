@@ -59,6 +59,7 @@ set(DPDK_LIBS
 
 set(DPDK_EXES
         src/dpdk/dpdk_server.c
+        src/dpdk/simple_mp.c
         src/dpdk/dpdk_client.cpp)
 
 add_compile_options("-march=native")
@@ -70,7 +71,7 @@ set(DPDK_DEPS
         -lrte_ip_frag -lrte_gso -lrte_gro -lrte_eventdev -lrte_efd -lrte_distributor -lrte_cryptodev -lrte_compressdev
         -lrte_cfgfile -lrte_bitratestats -lrte_bbdev -lrte_acl -lrte_timer -lrte_hash -lrte_metrics -lrte_cmdline
         -lrte_pci -lrte_ethdev -lrte_meter -lrte_net -lrte_mbuf -lrte_mempool -lrte_rcu -lrte_ring -lrte_eal
-        -lrte_telemetry -lrte_kvargs)
+        -lrte_telemetry -lrte_kvargs -lbsd)
 
 if (DPDK_VERSION)
     if (${DPDK_VERSION} GREATER 16)
@@ -100,7 +101,7 @@ foreach (sourcefile ${DPDK_TESTS})
 endforeach (sourcefile ${DPDK_TESTS})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-#    add_subdirectory(src/dist/mica2)
+    #    add_subdirectory(src/dist/mica2)
 endif ()
 
 #add_subdirectory(src/dist/anna)
