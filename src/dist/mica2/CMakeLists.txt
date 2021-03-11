@@ -1,10 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT(MICA)
+#PROJECT(MICA)
 
-
-SET(CMAKE_CXX_COMPILER g++-5)
-SET(CMAKE_C_LINK_EXECUTABLE g++-5)
 
 
 
@@ -15,8 +12,8 @@ OPTION(LTO "Use link time optimization" OFF)
 
 OPTION(DPDK "Enable Intel DPDK" ON)
 
-
-
+include_directories("/usr/include/dpdk")
+include_directories(${CMAKE_SOURCE_DIR}/src/dist/mica2/src)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
@@ -239,5 +236,8 @@ ELSE(LTO)
     ENDIF(SQLITE)
 
   ENDIF(DPDK)
+
+  ADD_EXECUTABLE(mica_ycsb mica_ycsb.cpp)
+  TARGET_LINK_LIBRARIES(mica_ycsb common ${LIBRARIES})
 
 ENDIF(LTO)
